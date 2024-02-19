@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# UPDATE
+
+alias update-bashscripts='curl -o /root/.bashscripts "https://raw.githubusercontent.com/feanorknd/bashscripts/main/bashscripts" && chmod 0600 /root/.bashscripts'
+
 # COMMON ALIASES
 
 alias ..='cd ..'
