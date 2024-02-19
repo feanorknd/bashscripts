@@ -118,7 +118,7 @@ if ! shopt -oq posix; then
 fi
 
 # insert custom aliases and functions
-if [ -f /root/.bashscripts ]; 
+if [ -f /root/.bashscripts ];
 then
     source /root/.bashscripts
 fi
