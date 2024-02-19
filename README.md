@@ -6,7 +6,7 @@ apt install -y curl
 
 rsync -avE /root/.bashrc /root/.bashrc.original &&
 curl -o /root/.bashscripts "https://raw.githubusercontent.com/feanorknd/bashscripts/main/bashscripts" && chmod 0600 /root/.bashscripts &&
-curl -o /root/.bashrc "https://raw.githubusercontent.com/feanorknd/bashscripts/main/bashrc.jammy" && chmod 0644 /root/.bashrc &&
+curl -o /root/.bashrc "https://raw.githubusercontent.com/feanorknd/bashscripts/main/bashrc.jammy" && chmod 0644 /root/.bashrc
 
 
 
