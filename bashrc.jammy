@@ -128,3 +128,8 @@ if [ -f /root/.bashrsyncs ];
 then
     source /root/.bashrsyncs
 fi
+
+if [ -f /root/.acme.sh/acme.sh.env ];
+then
+    source /root/.acme.sh/acme.sh.env
+fi
