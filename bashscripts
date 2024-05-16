@@ -56,6 +56,7 @@ alias modsec-counters="/etc/modsecurity/scripts/06-read_shared_collections.sh"
 
 # COMMON FUNCTIONS
 
+ispcron(){ /usr/local/ispconfig/server/server.sh 2>&1 | while read line; do echo `/bin/date` "$line" >> /var/log/ispconfig/cron.log; done; }
 dudir(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; ; }
 dudirg(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.]+G" | sort ; }
 dudirm(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.]+M" | sort ; }
