@@ -53,6 +53,7 @@ alias testipv6ping="ping -c 2 -6 www.cyberciti.biz"
 alias salirssh='unset HISTFILE && exit'
 alias restartnginx='if [ -d /var/modsecurity ]; then rm -f /var/modsecurity/*; systemctl restart nginx; else systemctl restart nginx; fi'
 alias modsec-counters="/etc/modsecurity/scripts/06-read_shared_collections.sh"
+alias compressed-mail-read="zstdcat"
 
 # COMMON FUNCTIONS
 
