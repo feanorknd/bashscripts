@@ -57,6 +57,18 @@ alias compressed-mail-read="zstdcat"
 
 # COMMON FUNCTIONS
 
+showline(){
+	file="$1";
+	line="$2";
+	after="$3";
+
+	if [ -z $3 ]
+	then
+		head -n ${line} ${file} | tail -n 1;
+	else
+		awk "NR >= ${line} && NR <= ${file}" ${file};
+	fi
+}
 geolocate(){ curl "https://gino.es/geo/$1"; }
 ispcron(){ /usr/local/ispconfig/server/server.sh 2>&1 | while read line; do echo `/bin/date` "$line" >> /var/log/ispconfig/cron.log; done; }
 dudir(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; ; }
