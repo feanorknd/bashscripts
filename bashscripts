@@ -55,6 +55,7 @@ alias restartnginx='if [ -d /var/modsecurity ]; then rm -f /var/modsecurity/*; s
 alias modsec-counters="/etc/modsecurity/scripts/06-read_shared_collections.sh"
 alias compressed-mail-read="zstdcat"
 alias ports="netstat -tnlp"
+alias ports2="lsof -i -P -sTCP:LISTEN"
 
 # COMMON FUNCTIONS
 
