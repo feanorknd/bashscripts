@@ -57,7 +57,7 @@ alias compressed-mail-read="zstdcat"
 alias ports="netstat -tnlp"
 alias ports2="lsof -i -P -sTCP:LISTEN"
 alias rbls="/root/scripts/rbl/check_bl.sh"
-alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-available/rbls.list -v"
+alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-available/rbls.lists -v"
 
 # COMMON FUNCTIONS
 
