@@ -61,6 +61,11 @@ alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-
 
 # COMMON FUNCTIONS
 
+urldecodemodsec(){
+        file="$1"
+        string="$(grep -A 1 "\---C--" $file | tail -n 1)"
+        echo "$string" | python3 -c "import sys, urllib.parse as ul; [print(ul.unquote_plus(l), end='') for l in sys.stdin]"  | tr '&' '\n'
+}
 showline(){
         file="$1";
         line="$2";
