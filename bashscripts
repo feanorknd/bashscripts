@@ -120,12 +120,18 @@ restartphps(){
         ps aux | grep "php-fpm: master process"
 }
 
+checkcertfile(){
+        [[ -z $1 ]] && echo "checkcert <file pem or crt>"
+        file="$1"
+        [[ ! -z $1 ]] && cat ${file} | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
+}
+
 checkcertdns(){
         [[ -z $1 ]] && echo "checkcert <server> <port> <sni_name>"
         server="$1"
         port="$2"
         sni="$3"
-        [[ ! -z $1 ]] && openssl s_client -connect ${server}:${port} -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep DNS:
+        [[ ! -z $1 ]] && openssl s_client -connect ${server}:${port} -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
 }
 
 checkcert(){
@@ -133,19 +139,7 @@ checkcert(){
         server="$1"
         port="$2"
         sni="$3"
-        [[ ! -z $1 ]] && openssl s_client -connect ${server}:${port} -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -A 4 "Issuer:"
-}
-
-checkssl(){
-        [[ -z $1 ]] && echo "checkcert <server> <port> <sni_name>"
-        server="$1"
-        port="$2"
-        sni="$3"
-        [[ ! -z $1 ]] && openssl s_client -connect ${server}:${port} -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -A 4 "Issuer:"
-}
-
-checkfilessl(){
-        openssl x509 -text -noout -in $1
+        [[ ! -z $1 ]] && openssl s_client -connect ${server}:${port} -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
 }
 
 swap(){
