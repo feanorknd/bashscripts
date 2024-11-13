@@ -87,11 +87,11 @@ showline(){
 geolocate(){ curl "https://gino.es/geo/$1"; }
 ispcron(){ /usr/local/ispconfig/server/server.sh 2>&1 | while read line; do echo `/bin/date` "$line" >> /var/log/ispconfig/cron.log; done; }
 dudir(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; ; }
-dudirg(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.]+G" | sort ; }
-dudirm(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.]+M" | sort ; }
+dudirg(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.\,]+G" | sort ; }
+dudirm(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.\,]+M" | sort ; }
 dufiles(){ find $1 -maxdepth 1 -mindepth 1 -type f -exec du -hs {} \; ; }
-dufilesg(){ find $1 -maxdepth 1 -mindepth 1 -type f -exec du -hs {} \; | grep -E "^[0-9\.]+G" | sort ; }
-dufilesm(){ find $1 -maxdepth 1 -mindepth 1 -type f -exec du -hs {} \; | grep -E "^[0-9\.]+M" | sort ; }
+dufilesg(){ find $1 -maxdepth 1 -mindepth 1 -type f -exec du -hs {} \; | grep -E "^[0-9\.\,]+G" | sort ; }
+dufilesm(){ find $1 -maxdepth 1 -mindepth 1 -type f -exec du -hs {} \; | grep -E "^[0-9\.\,]+M" | sort ; }
 duall(){ find $1 -maxdepth 1 -mindepth 1 -exec du -hs {} \; ; }
 duallg(){ find $1 -maxdepth 1 -mindepth 1 -exec du -hs {} \; | grep -E "^[0-9\.]+G" | sort ; }
 duallsm(){ find $1 -maxdepth 1 -mindepth 1 -exec du -hs {} \; | grep -E "^[0-9\.]+M" | sort ; }
