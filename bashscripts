@@ -191,3 +191,33 @@ imunifyrestart(){
         done
 }
 
+checkmailautos(){
+        [[ -z $1 ]] && echo "checkmailautos <email_address>"
+        mail="$1"
+        domain="$(echo $mail | awk -F'@' '{print $2}')"
+
+        clear
+        echo ""
+        echo "Testing autoconfig:"
+        echo "-------------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "curl \"https://$domain/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=$mail\""
+        echo ""
+        echo "Result:"
+        curl "https://$domain/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=$mail"
+        echo ""
+        echo ""
+        echo ""
+        echo "Testing autodiscover:"
+        echo "-------------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "<?xml version="1.0" encoding="utf-8" ?><Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/outlook/requestschema/2006"><Request><AcceptableResponseSchema>http://schemas.microsoft.com/exchange/autodiscover/outlook/responseschema/2006a</AcceptableResponseSchema><!-- EMailAddress: indicates the user's email address. OPTIONAL --><EMailAddress>$mail</EMailAddress></Request></Autodiscover>" >> /tmp/testautodiscover.xml
+        echo "XML to send:"
+        cat /tmp/testautodiscover.xml
+        echo ""
+        echo "curl -X POST -d @/tmp/testautodiscover.xml \"https://$domain/autodiscover/autodiscover.xml\""
+        echo ""
+        echo "Result:"
+        curl -X POST -d @/tmp/testautodiscover.xml "https://$domain/autodiscover/autodiscover.xml"
+        echo ""
+        rm -f /tmp/testautodiscover.xml
+
+}
