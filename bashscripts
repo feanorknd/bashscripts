@@ -172,8 +172,57 @@ memory(){
 }
 
 learnspam(){
-        for file in $(find -maxdepth 1 -mindepth 1 -type f); do cat $file | rspamc learn_spam; done
+        for file in $(find -maxdepth 1 -mindepth 1 -type f); do
+		if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
+		then
+			MYCAT="/usr/bin/zstdcat"
+		else
+			MYCAT="/usr/bin/cat"
+		fi
+		${MYCAT} $file | rspamc learn_spam
+	done
 }
+
+learnspamfuzzy(){
+        for file in $(find -maxdepth 1 -mindepth 1 -type f); do
+                if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
+                then
+                        MYCAT="/usr/bin/zstdcat"
+                else
+                        MYCAT="/usr/bin/cat"
+                fi
+                ${MYCAT} $file | rspamc -S LOCAL_FUZZY_WHITE fuzzy_del
+		${MYCAT} $file | rspamc -S LOCAL_FUZZY_DENIED -w 10 fuzzy_add
+		${MYCAT} $file | rspamc learn_spam
+	done
+}
+
+learnham(){
+        for file in $(find -maxdepth 1 -mindepth 1 -type f); do
+                if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
+                then
+                        MYCAT="/usr/bin/zstdcat"
+                else
+                        MYCAT="/usr/bin/cat"
+                fi
+                ${MYCAT} $file | rspamc learn_ham
+	done
+}
+
+learnhamfuzzy(){
+        for file in $(find -maxdepth 1 -mindepth 1 -type f); do
+                if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
+                then
+                        MYCAT="/usr/bin/zstdcat"
+                else
+                        MYCAT="/usr/bin/cat"
+                fi
+                ${MYCAT} $file | rspamc -S LOCAL_FUZZY_DENIED fuzzy_del
+                ${MYCAT} $file | rspamc -S LOCAL_FUZZY_WHITE -w 10 fuzzy_add
+                ${MYCAT} $file | rspamc learn_ham
+        done
+}
+
 
 gomail(){
         mail="$(echo $1 | awk -F"@" '{print $1}')"
