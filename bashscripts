@@ -173,6 +173,11 @@ memory(){
 
 learnspam(){
         for file in $(find -maxdepth 1 -mindepth 1 -type f ! -name "dovecot*" ! -name "subscriptions"); do
+                echo ""
+                echo "-------------------------------------------------------------------"
+                echo "Processing:"
+                echo "$(realpath "$file")";
+                echo ""
 		if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
 		then
 			MYCAT="/usr/bin/zstdcat"
@@ -185,6 +190,11 @@ learnspam(){
 
 learnspamfuzzy(){
         for file in $(find -maxdepth 1 -mindepth 1 -type f ! -name "dovecot*" ! -name "subscriptions"); do
+		echo ""
+		echo "-------------------------------------------------------------------"
+		echo "Processing:"
+		echo "$(realpath "$file")";
+		echo ""
                 if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
                 then
                         MYCAT="/usr/bin/zstdcat"
@@ -199,6 +209,11 @@ learnspamfuzzy(){
 
 learnham(){
         for file in $(find -maxdepth 1 -mindepth 1 -type f ! -name "dovecot*" ! -name "subscriptions"); do
+                echo ""
+                echo "-------------------------------------------------------------------"
+                echo "Processing:"
+                echo "$(realpath "$file")";
+                echo ""
                 if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
                 then
                         MYCAT="/usr/bin/zstdcat"
@@ -211,6 +226,11 @@ learnham(){
 
 learnhamfuzzy(){
         for file in $(find -maxdepth 1 -mindepth 1 -type f ! -name "dovecot*" ! -name "subscriptions"); do
+                echo ""
+                echo "-------------------------------------------------------------------"
+                echo "Processing:"
+                echo "$(realpath "$file")";
+                echo ""
                 if [ $(file --mime-type $file | grep "application/zstd" | wc -l) -eq 1 ]
                 then
                         MYCAT="/usr/bin/zstdcat"
