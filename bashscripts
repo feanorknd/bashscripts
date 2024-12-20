@@ -68,9 +68,9 @@ mailgrep(){
 	do
 		FILE_TYPE=$(file --mime-type -b "${logfile}")
 		if [[ "${FILE_TYPE}" == "application/gzip" ]]; then
-			zcat ${logfile}" | grep " postfix" | grep "${string}"
+			zcat ${logfile} | grep " postfix" | grep "${string}"
 		else
-			cat ${logfile}" | grep " postfix" | grep "${string}"
+			cat ${logfile} | grep " postfix" | grep "${string}"
 		fi
 
 	done < <(find /var/log/ -name "mail.log*" -mtime -${time} -printf "%T+ %p\n" | sort | awk '{print $2}')
@@ -83,9 +83,9 @@ dovegrep(){
         do
                 FILE_TYPE=$(file --mime-type -b "${logfile}")
                 if [[ "${FILE_TYPE}" == "application/gzip" ]]; then
-                        zcat ${logfile}" | grep " dovecot:" | grep "${string}"
+                        zcat ${logfile} | grep " dovecot:" | grep "${string}"
                 else
-                        cat ${logfile}" | grep " dovecot:" | grep "${string}"
+                        cat ${logfile} | grep " dovecot:" | grep "${string}"
                 fi
 
         done < <(find /var/log/ -name "mail.log*" -mtime -${time} -printf "%T+ %p\n" | sort | awk '{print $2}')
