@@ -38,11 +38,6 @@ alias aptr='aptitude remove'
 alias apts='aptitude search'
 alias aptu='aptitude update'
 alias aptup='aptitude upgrade'
-alias postgrep="grep postfix /var/log/mail.log | grep -i"
-alias dovegrep="grep dovecot /var/log/mail.log | grep -i"
-alias mailgrep="cat /var/log/mail.log | grep -i"
-alias mailtail="tail -f /var/log/mail.log"
-alias mailtailgrep="tail -f /var/log/mail.log | grep -i"
 alias reloadcsf="systemctl stop csf;systemctl stop lfd;sleep 5;systemctl start csf;sleep 10;systemctl start lfd"
 alias resetcsf="csf -x; sleep 1; csf -e"
 alias godomlogs="cd /var/log/ispconfig/httpd"
@@ -59,6 +54,42 @@ alias ports2="lsof -i -P -sTCP:LISTEN"
 alias rbls="/root/scripts/rbl/check_bl.sh"
 alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-available/rbls.lists -v"
 alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egrep 'dirty|writeback'; done"
+
+
+# MAIL FILTERING
+
+alias mailtail="tail -f /var/log/mail.log"
+alias mailtailgrep="tail -f /var/log/mail.log | grep -i"
+
+mailgrep(){
+	string="$1"
+	[ -z $2 ] && time=3 || time=$2
+	while read logfile
+	do
+		FILE_TYPE=$(file --mime-type -b "${logfile}")
+		if [[ "${FILE_TYPE}" == "application/gzip" ]]; then
+			zcat ${logfile}" | grep " postfix" | grep "${string}"
+		else
+			cat ${logfile}" | grep " postfix" | grep "${string}"
+		fi
+
+	done < <(find /var/log/ -name "mail.log*" -mtime -${time} -printf "%T+ %p\n" | sort | awk '{print $2}')
+}
+
+dovegrep(){
+        string="$1"
+        [ -z $2 ] && time=3 || time=$2
+        while read logfile
+        do
+                FILE_TYPE=$(file --mime-type -b "${logfile}")
+                if [[ "${FILE_TYPE}" == "application/gzip" ]]; then
+                        zcat ${logfile}" | grep " dovecot:" | grep "${string}"
+                else
+                        cat ${logfile}" | grep " dovecot:" | grep "${string}"
+                fi
+
+        done < <(find /var/log/ -name "mail.log*" -mtime -${time} -printf "%T+ %p\n" | sort | awk '{print $2}')
+}
 
 # COMMON FUNCTIONS
 
