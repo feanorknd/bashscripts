@@ -66,6 +66,7 @@ mailgrep(){
 	[ -z $2 ] && time=3 || time=$2
 	while read logfile
 	do
+		echo "filtering $logfile"
 		FILE_TYPE=$(file --mime-type -b "${logfile}")
 		if [[ "${FILE_TYPE}" == "application/gzip" ]]; then
 			zcat ${logfile} | grep " postfix" | grep "${string}"
