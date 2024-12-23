@@ -132,7 +132,8 @@ durf(){ find $1 -type f -links 1; }
 duhf(){ find $1 -type f -links +1; }
 limpia(){ rm -vf ./*${1}* | wc -l; }
 limpiafind(){ find ./ -maxdepth 1 -mindepth 1 -type f -exec grep -l "${1}" {} \; | xargs rm -vf | wc -l ; }
-limpiaipmatching(){ find ./ -maxdepth 1 -mindepth 1 -type f -name "*${1}*" | grep -o -P "_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+_" | grep -o -P "[0-9\.]+" | sort -u | while read IP; do rm -vf ./*${IP}* | wc -l; done }
+limpiaipmatching(){ find ./ -maxdepth 1 -mindepth 1 -type f -name "*${1}*" | grep -o -P "_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+_" | grep -o -P "[0-9\.]+" | sort -u | while read IP; do rm -vf ./*${IP}* ; done | wc -l ; }
+limpiaipmatchingfind(){ find ./ -maxdepth 1 -mindepth 1 -type f -exec grep -l "${1}" {} \; | grep -o -P "_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+_" | grep -o -P "[0-9\.]+" | sort -u | while read IP; do rm -vf ./*${IP}* ; done | wc -l ; }
 chequeacon(){ netstat -an | awk '/tcp/ {print $6}' | sort | uniq -c; }
 quienphp(){ psg php | awk '{print $1}' | sort | uniq -c | sort -n; }
 
