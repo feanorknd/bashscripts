@@ -58,7 +58,8 @@ alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egr
 
 # MAIL FILTERING
 
-alias mailtail="tail -f /var/log/mail.log"
+alias mailtail="tail -f /var/log/mail.log | grep -i -a postfix"
+alias dovetail="tail -f /var/log/mail.log | grep -i -a dovecot"
 alias mailtailgrep="tail -f /var/log/mail.log | grep -i"
 
 mailgrep(){
@@ -90,6 +91,9 @@ dovegrep(){
 
         done < <(find /var/log/ -name "mail.log*" -mtime -${time} -printf "%T+ %p\n" | sort | awk '{print $2}')
 }
+
+
+
 
 # COMMON FUNCTIONS
 
