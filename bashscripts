@@ -292,6 +292,7 @@ findmailgrep(){
         then
                 echo "findmail <mail> <text> <maxdaysold>"
         else
+		mail="$(echo $1 | awk -F"@" '{print $1}')"
                 domain="$(echo $1 | awk -F"@" '{print $2}')"
                 text="$2"
                 daysold="$2"
@@ -309,15 +310,16 @@ findmailzstdgrep(){
 	then
 		echo "findmail <mail> <text> <maxdaysold>"
 	else
+		mail="$(echo $1 | awk -F"@" '{print $1}')"
 	        domain="$(echo $1 | awk -F"@" '{print $2}')"
 		text="$2"
-		daysold="$3"
+		#daysold="$3"
 		if [ -z $daysold ]
 		then
 			daysold=7
 		fi
 
-		echo "Grep /var/vmail/$domain/$mail/Maildir/ files with text '${text}'"
+		echo "Grep /var/vmail/$domain/$mail/Maildir/ files with text '${text}' max ${daysold} days"
 
 		find /var/vmail/$domain/$mail/Maildir/ -type f -mtime -${daysold} -exec zstdgrep -l "${text}" {} \;
 	fi
