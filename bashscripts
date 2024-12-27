@@ -311,11 +311,13 @@ findmailzstdgrep(){
 	else
 	        domain="$(echo $1 | awk -F"@" '{print $2}')"
 		text="$2"
-		daysold="$2"
+		daysold="$3"
 		if [ -z $daysold ]
 		then
 			daysold=7
 		fi
+
+		echo "Grep /var/vmail/$domain/$mail/Maildir/ files with text '${text}'"
 
 		find /var/vmail/$domain/$mail/Maildir/ -type f -mtime -${daysold} -exec zstdgrep -l "${text}" {} \;
 	fi
