@@ -58,8 +58,8 @@ alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egr
 # RAM CONSUMING PER PROCESS %
 ram(){
 	string="$1"
-	[ ! -z $string ] && string="(.*)"
-	echo "'*${string}*' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += $3} END {print sum}')% of RAM memory"
+	[ -z $string ] && string="(.*)"
+	echo "'${string}' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += $3} END {print sum}')% of RAM memory"
 }
 
 # MAIL FILTERING
