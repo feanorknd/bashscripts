@@ -61,6 +61,8 @@ ram(){
 	[ -z $string ] && string="(.*)"
 	echo "'${string}' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += $3} END {print sum}')% of RAM memory"
 }
+alias ramlist="ps -eo pid,comm,%mem | sort -rk3 | grep -v sleeping | head -n 100"
+
 
 # MAIL FILTERING
 
