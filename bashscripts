@@ -56,7 +56,7 @@ alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-
 alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egrep 'dirty|writeback'; done"
 
 # RAM CONSUMING PER PROCESS %
-alias ram(){
+ram(){
 	string="$1"
 	[ ! -z $string ] && string="(.*)"
 	echo "'*${string}*' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += $3} END {print sum}')% of RAM memory"
