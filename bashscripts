@@ -142,13 +142,13 @@ duallsm(){ find $1 -maxdepth 1 -mindepth 1 -exec du -hs {} \; | grep -E "^[0-9\.
 dufilesbetween(){
 	midir="$1";min="$2";max="$3"
 	if [ -z $1 ] || [ -z $2 ] || [ -z $3 ]; then echo "dufilesbetween <dir> <MIN> <MAX>"; echo "for example: dufilesbetween /var/vmail/ 3K 5M"; return; fi
-	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "Total size: {}M";
+	totalfiles=$(find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max})
 	echo ""
 	echo "files"
 	echo "------------------------------------------------------------------------------------------------------------------"
 	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -exec stat --format="%n %s" {} \; | awk '{print $1, $2}' | numfmt --to=iec --field=2
 	echo "------------------------------------------------------------------------------------------------------------------"
-	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "Total size: {}M";
+	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "Total size: {}M ($totalfiles files)";
 	echo ""
 }
 
