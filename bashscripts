@@ -150,7 +150,7 @@ dufilesbetween(){
 	echo ""
 	echo "files"
 	echo "------------------------------------------------------------------------------------------------------------------"
-	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -exec stat --format="%n %s" {} \; | awk '{print $1, $2}' | numfmt --to=iec --field=2
+	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -exec stat --format="%Y %n %s" {} \; | sort -n | awk '{printf "%s\t\t\t%s\t\t\t%s\n", $2, $3, strftime("%Y-%m-%d %H:%M:%S", $1)}' | numfmt --to=iec --field=2
 	echo "------------------------------------------------------------------------------------------------------------------"
 	find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "Total size: {}M ($totalfiles files)";
 	echo ""
