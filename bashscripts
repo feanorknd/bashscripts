@@ -146,6 +146,7 @@ dufilesbetween(){
 	midir="$1";min="$2";max="$3"
 	if [ -z $1 ] || [ -z $2 ] || [ -z $3 ]; then echo "dufilesbetween <dir> <MIN> <MAX>"; echo "for example: dufilesbetween /var/vmail/ 3K 5M"; return; fi
 	totalfiles=$(find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max} | wc -l)
+	echo "(find $midir -maxdepth 1 -mindepth 1  -size +${min} -size -${max})"
 	echo ""
 	echo "files"
 	echo "------------------------------------------------------------------------------------------------------------------"
