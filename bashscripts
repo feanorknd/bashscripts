@@ -156,6 +156,22 @@ dufilesbetween(){
 	echo ""
 }
 
+dufilesextension(){
+        midir="$1"
+	ext="$2"
+        if [ -z $1 ] || [ -z $2 ]; then echo "dufilesextension <dir> <extension> [<recursive>]"; echo "for example: dufilesextension /var/vmail/ jpg recursive"; return; fi
+        totalfiles=$(find $midir -iname "*.${ext}" | wc -l)
+        echo ""
+        echo "${ext} files"
+        echo "------------------------------------------------------------------------------------------------------------------"
+	if [ -z $3 ]; then
+	        find $midir -maxdepth 1 -mindepth 1 -iname "*.${ext}" -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "Total size: {}M ($totalfiles files)";
+	else
+		find $midir -iname "*.${ext}" -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "Total size: {}M ($totalfiles files)";
+	fi
+        echo ""
+}
+
 dur(){ find $1 -type f -links 1 -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "{}G"; }
 duh(){ find $1 -type f -links +1 -printf "%s\n" | awk '{s=s+$1} END {print s}' | awk  '{ byte =$1/1024/1024/1024; print byte }' | awk '{printf("%.2f\n", $1)}' | xargs -I{} echo "{}G"; }
 durf(){ find $1 -type f -links 1; }
