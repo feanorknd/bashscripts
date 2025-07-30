@@ -57,6 +57,7 @@ alias ports2="lsof -i -P -sTCP:LISTEN"
 alias rbls="/root/scripts/rbl/check_bl.sh"
 alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-available/rbls.lists -v"
 alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egrep 'dirty|writeback'; done"
+alias flushea="truncate -s 0"
 
 # RAM CONSUMING PER PROCESS %
 ram(){
