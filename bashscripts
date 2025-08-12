@@ -60,59 +60,61 @@ alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egr
 alias flushea="truncate -s 0"
 
 # RAM CONSUMING PER PROCESS %
-ram(){
-	string="$1"
-	[ -z $string ] && string="(.*)"
-	echo "'${string}' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += $3} END {print sum}')% of RAM memory"
+ram() {
+    string="$1"
+    # Es más seguro usar comillas al comprobar la variable
+    [ -z "$string" ] && string="(.*)"
+    # Aquí está el cambio clave: \$3 en lugar de $3
+    echo "'${string}' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += \$3} END {print sum}')% of RAM memory"
 }
 
-ramlist(){
-awk '
-    # Para cada archivo /proc/[pid]/status
-    # Capturamos el nombre del proceso y reiniciamos los valores de memoria temporal
-    FNR==1 && /Name:/ {
-        current_name = $2;
-        current_rss = 0;
-        current_swap = 0;
-    }
-    # Buscamos y guardamos el valor de VmRSS (RAM)
-    /VmRSS:/ { current_rss = $2; }
-    # Buscamos y guardamos el valor de VmSwap (Swap)
-    /VmSwap:/ { current_swap = $2; }
-    # Al final de cada archivo (ENDFILE se soporta en gawk), agregamos los valores
-    ENDFILE {
-        # Si el proceso no usa memoria, lo ignoramos
-        if (current_rss + current_swap > 0) {
-            rss[current_name] += current_rss;
-            swap[current_name] += current_swap;
-            count[current_name]++;
+ramlist() {
+    awk '
+        # Para cada archivo /proc/[pid]/status
+        # Capturamos el nombre del proceso y reiniciamos los valores de memoria temporal
+        FNR==1 && /Name:/ {
+            current_name = $2;
+            current_rss = 0;
+            current_swap = 0;
         }
-    }
-    END {
-        # Imprimimos la cabecera
-        printf "%-25s %12s %12s %12s %8s\n", "NOMBRE", "RAM (RSS)", "SWAP", "TOTAL", "PROCESOS";
-        printf "%-25s %12s %12s %12s %8s\n", "-------------------------", "------------", "------------", "------------", "--------";
+        # Buscamos y guardamos el valor de VmRSS (RAM)
+        /VmRSS:/ { current_rss = $2; }
+        # Buscamos y guardamos el valor de VmSwap (Swap)
+        /VmSwap:/ { current_swap = $2; }
+        # Al final de cada archivo (ENDFILE se soporta en gawk), agregamos los valores
+        ENDFILE {
+            # Si el proceso no usa memoria, lo ignoramos
+            if (current_rss + current_swap > 0) {
+                rss[current_name] += current_rss;
+                swap[current_name] += current_swap;
+                count[current_name]++;
+            }
+        }
+        END {
+            # Imprimimos la cabecera
+            printf "%-25s %12s %12s %12s %8s\n", "NOMBRE", "RAM (RSS)", "SWAP", "TOTAL", "PROCESOS";
+            printf "%-25s %12s %12s %12s %8s\n", "-------------------------", "------------", "------------", "------------", "--------";
 
-        # Creamos un array para poder ordenar por el total de memoria usada
-        i = 0;
-        for (name in rss) {
-            total_mem = rss[name] + swap[name];
-            # Guardamos la línea de salida precedida por la memoria total para usarla como clave de ordenación
-            sort_array[i++] = sprintf("%020d\t%-25s\t%10.1f MB\t%10.1f MB\t%10.1f MB\t%8d", 
-                                    total_mem, name, rss[name]/1024, swap[name]/1024, total_mem/1024, count[name]);
+            # Creamos un array para poder ordenar por el total de memoria usada
+            i = 0;
+            for (name in rss) {
+                total_mem = rss[name] + swap[name];
+                # Guardamos la línea de salida precedida por la memoria total para usarla como clave de ordenación
+                sort_array[i++] = sprintf("%020d\t%-25s\t%10.1f MB\t%10.1f MB\t%10.1f MB\t%8d", 
+                                        total_mem, name, rss[name]/1024, swap[name]/1024, total_mem/1024, count[name]);
+            }
+            # Ordenamos el array numéricamente en orden descendente
+            n = asort(sort_array);
+            for (i = n; i >= 1; i--) {
+                # Extraemos la parte imprimible del string (ignoramos la clave de ordenación)
+                sub(/^[0-9]+\t/, "", sort_array[i]);
+                print sort_array[i];
+                if (n-i+1 >= 30) break; # Limitar a los 30 primeros
+            }
         }
-        
-        # Ordenamos el array numéricamente en orden descendente
-        n = asort(sort_array);
-        for (i = n; i >= 1; i--) {
-            # Extraemos la parte imprimible del string (ignoramos la clave de ordenación)
-            sub(/^[0-9]+\t/, "", sort_array[i]);
-            print sort_array[i];
-            if (n-i+1 >= 30) break; # Limitar a los 30 primeros
-        }
-    }
-' /proc/[0-9]*/status
+    ' /proc/[0-9]*/status
 }
+
 
 # MAIL FILTERING
 
