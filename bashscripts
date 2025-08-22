@@ -341,6 +341,36 @@ checkcert(){
         [[ ! -z $1 ]] && openssl s_client -connect ${server}:${port} -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
 }
 
+checkcertmails(){
+        [[ -z $1 ]] && echo "checkcert <server> <sni_name>"
+        server="$1"
+        sni="$2"
+
+        echo ""
+        echo "Checking certificates for $sni in server $server ..."
+        echo ""
+        echo "------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "Checking SMTP 25 (TLS):"
+        openssl s_client -connect ${server}:25 -servername ${sni} -starttls smtp </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
+        echo ""
+        echo "------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "Checking SMTP 465 (SSL):"
+        openssl s_client -connect ${server}:465 -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
+        echo ""
+        echo "------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "Checking SMTP 587 (TLS):"
+        openssl s_client -connect ${server}:587 -servername ${sni} -starttls smtp </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
+        echo ""
+        echo "------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "Checking IMAP 993 (SSL):"
+        openssl s_client -connect ${server}:993 -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
+        echo ""
+        echo "------------------------------------------------------------------------------------------------------------------------------------------"
+        echo "Checking POP3 995 (SSL):"
+        openssl s_client -connect ${server}:995 -servername ${sni} </dev/null 2>/dev/null | openssl x509 -noout -text | grep -P "(Issuer:|Not Before|Not After|Subject:|DNS:)" | sed 's/^[[:space:]]*//g'
+        echo ""
+}
+
 swap(){
         #smem --sort=swap --reverse --percent
         smem --sort=swap --reverse | head -n 20
