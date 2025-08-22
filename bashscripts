@@ -343,6 +343,7 @@ checkcert(){
 
 checkcertmails(){
         [[ -z $1 ]] && echo "checkcert <server> <sni_name>"
+        [[ -z $1 ]] && return 1
         server="$1"
         sni="$2"
 
