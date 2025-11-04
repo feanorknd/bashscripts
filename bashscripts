@@ -59,6 +59,8 @@ alias rbls-modsecurity="/root/scripts/rbl/check_bl.sh -l /etc/modsecurity/rules-
 alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egrep 'dirty|writeback'; done"
 alias flushea="truncate -s 0"
 alias vacia="truncate -s 0"
+alias cola="postqueue -p"
+alias colaflush="postsuper -d ALL"
 
 # RAM CONSUMING PER PROCESS %
 ram() {
