@@ -60,7 +60,12 @@ alias pagecache-writeback="while true; do sleep 1; clear; cat /proc/vmstat | egr
 alias flushea="truncate -s 0"
 alias vacia="truncate -s 0"
 alias cola="postqueue -p"
-alias colaflush="postsuper -d ALL"
+alias cola-borrar-todo="postsuper -d ALL"
+alias cola-enviar-todo="postqueue -f"
+alias cola-check-mail-by-id="postcat -q "
+alias cola-remove-mail-by-id="postsuper -d "
+alias cola-eliminar-mails-devueltos="postsuper -d ALL deferred"
+alias cola-pfqueue="pfqueue"
 
 # RAM CONSUMING PER PROCESS %
 ram() {
