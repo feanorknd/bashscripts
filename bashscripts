@@ -67,6 +67,29 @@ alias cola-remove-mail-by-id="postsuper -d "
 alias cola-eliminar-mails-devueltos="postsuper -d ALL deferred"
 alias cola-pfqueue="pfqueue"
 
+rastrea() {
+    local archivo="$1"
+    shift
+
+    if [ -z "$archivo" ]; then echo "Uso: rastrea <archivo> [texto1] [texto2] [...]"; return 1; fi
+    if [ ! -f "$archivo" ]; then echo "Error: el archivo no existe: $archivo"; return 1; fi
+
+    local pipeline
+    pipeline="tail -f \"\$archivo\""
+
+    for filtro in "$@"; do pipeline+=" | grep -i --line-buffered -- \"\$filtro\""; done
+
+    tail -f "$archivo" | while IFS= read -r linea; do
+        local coincide=1
+
+        for filtro in "$@"; do
+            if ! grep -qi -- "$filtro" <<< "$linea"; then coincide=0; break; fi
+        done
+
+        if [ "$coincide" -eq 1 ]; then printf '%s\n' "$linea"; fi
+    done
+}
+
 # RAM CONSUMING PER PROCESS %
 ram() {
     string="$1"
