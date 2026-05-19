@@ -67,6 +67,83 @@ alias cola-remove-mail-by-id="postsuper -d "
 alias cola-eliminar-mails-devueltos="postsuper -d ALL deferred"
 alias cola-pfqueue="pfqueue"
 
+compare_dirs() {
+  local SOURCE=""
+  local NEW=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --source)
+        SOURCE="${2:-}"
+        shift 2
+        ;;
+      --new)
+        NEW="${2:-}"
+        shift 2
+        ;;
+      *)
+        echo "Uso: compare_dirs --source /ruta/source --new /ruta/new"
+        return 1
+        ;;
+    esac
+  done
+
+  [[ -z "$SOURCE" || -z "$NEW" ]] && {
+    echo "Uso: compare_dirs --source /ruta/source --new /ruta/new"
+    return 1
+  }
+
+  [[ ! -d "$SOURCE" ]] && {
+    echo "ERROR: source no existe o no es directorio: $SOURCE"
+    return 1
+  }
+
+  [[ ! -d "$NEW" ]] && {
+    echo "ERROR: new no existe o no es directorio: $NEW"
+    return 1
+  }
+
+  local tmp_source tmp_new
+  tmp_source=$(mktemp)
+  tmp_new=$(mktemp)
+
+  trap 'rm -f "$tmp_source" "$tmp_new"' RETURN
+
+  (
+    cd "$SOURCE" || return 1
+    find . -type f | sort
+  ) > "$tmp_source"
+
+  (
+    cd "$NEW" || return 1
+    find . -type f | sort
+  ) > "$tmp_new"
+
+  echo "Archivos solo en SOURCE:"
+  comm -23 "$tmp_source" "$tmp_new"
+  echo
+
+  echo "Archivos solo en NEW:"
+  comm -13 "$tmp_source" "$tmp_new"
+  echo
+
+  echo "Archivos en ambos pero distintos:"
+  comm -12 "$tmp_source" "$tmp_new" | while read -r file; do
+    local source_file="$SOURCE/${file#./}"
+    local new_file="$NEW/${file#./}"
+
+    local source_md5 new_md5
+    source_md5=$(md5sum "$source_file" | awk '{print $1}')
+    new_md5=$(md5sum "$new_file" | awk '{print $1}')
+
+    if [[ "$source_md5" != "$new_md5" ]]; then
+      echo "$file"
+      echo "  SOURCE md5: $source_md5"
+      echo "  NEW md5:    $new_md5"
+    fi
+  done
+}
+
 rastrea() {
     local archivo="$1"
     shift
