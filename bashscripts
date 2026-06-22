@@ -177,6 +177,87 @@ ram() {
 }
 
 ramlist() {
+    tmpfile=$(mktemp /tmp/ramlist.XXXXXX) || return 1
+
+    for pidpath in /proc/[0-9]*; do
+        pid=${pidpath#/proc/}
+
+        [ -r "$pidpath/status" ] || continue
+
+        name=$(awk '/^Name:/ {print $2; exit}' "$pidpath/status" 2>/dev/null)
+        [ -n "$name" ] || continue
+
+        if [ -r "$pidpath/smaps_rollup" ]; then
+            awk -v name="$name" '
+                /^Rss:/ { rss = $2 }
+                /^Pss:/ { pss = $2 }
+                /^Private_Clean:/ { private += $2 }
+                /^Private_Dirty:/ { private += $2 }
+                /^Swap:/ { swap = $2 }
+                END {
+                    if (rss + pss + private + swap > 0) {
+                        printf "%s\t%d\t%d\t%d\t%d\n", name, rss, pss, private, swap
+                    }
+                }
+            ' "$pidpath/smaps_rollup" 2>/dev/null >> "$tmpfile"
+
+        elif [ -r "$pidpath/smaps" ]; then
+            awk -v name="$name" '
+                /^Rss:/ { rss += $2 }
+                /^Pss:/ { pss += $2 }
+                /^Private_Clean:/ { private += $2 }
+                /^Private_Dirty:/ { private += $2 }
+                /^Swap:/ { swap += $2 }
+                END {
+                    if (rss + pss + private + swap > 0) {
+                        printf "%s\t%d\t%d\t%d\t%d\n", name, rss, pss, private, swap
+                    }
+                }
+            ' "$pidpath/smaps" 2>/dev/null >> "$tmpfile"
+        fi
+    done
+
+    awk '
+        {
+            name = $1
+            rss[name] += $2
+            pss[name] += $3
+            private[name] += $4
+            swap[name] += $5
+            count[name]++
+        }
+        END {
+            printf "%-25s %12s %12s %12s %12s %12s %8s\n", "NOMBRE", "RSS", "PSS", "PRIVATE", "SWAP", "TOTAL", "PROCESOS"
+            printf "%-25s %12s %12s %12s %12s %12s %8s\n", "-------------------------", "------------", "------------", "------------", "------------", "------------", "--------"
+
+            i = 0
+
+            for (name in pss) {
+                total = pss[name] + swap[name]
+                sort_array[i++] = sprintf("%020d\t%-25s %12.1f MB %12.1f MB %12.1f MB %12.1f MB %12.1f MB %8d", total, name, rss[name] / 1024, pss[name] / 1024, private[name] / 1024, swap[name] / 1024, total / 1024, count[name])
+            }
+
+            n = asort(sort_array)
+
+            shown = 0
+
+            for (i = n; i >= 1; i--) {
+                sub(/^[0-9]+\t/, "", sort_array[i])
+                print sort_array[i]
+
+                shown++
+
+                if (shown >= 30) {
+                    break
+                }
+            }
+        }
+    ' "$tmpfile"
+
+    rm -f "$tmpfile"
+}
+
+ramlist-fast() {
     awk '
         # Para cada archivo /proc/[pid]/status
         # Capturamos el nombre del proceso y reiniciamos los valores de memoria temporal
