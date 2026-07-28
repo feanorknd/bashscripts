@@ -167,193 +167,484 @@ rastrea() {
     done
 }
 
-# RAM CONSUMING PER PROCESS %
-ram() {
-    string="$1"
-    # Es más seguro usar comillas al comprobar la variable
-    [ -z "$string" ] && string="(.*)"
-    # Aquí está el cambio clave: \$3 en lugar de $3
-    echo "'${string}' takes: $(ps -eo pid,comm,%mem | sort -rk3 | grep -P "${string}" | awk '{sum += \$3} END {print sum}')% of RAM memory"
-}
+
+# RAM ANALISIS
 
 ramlist() {
-    tmpfile=$(mktemp /tmp/ramlist.XXXXXX) || return 1
+    local mode="ram"
+    local limit=30
+    local tmpfile
+    local status
+    local pid
+    local name
+    local ppid
+    local pss
+    local swappss
 
-    for pidpath in /proc/[0-9]*; do
-        pid=${pidpath#/proc/}
+    case "${1:-}" in
+        "")
+            mode="ram"
+            ;;
+        --swap)
+            mode="swap"
+            ;;
+        *)
+            printf 'Uso: ramlist\n' >&2
+            return 2
+            ;;
+    esac
 
-        [ -r "$pidpath/status" ] || continue
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/memlist.XXXXXX") || return 1
 
-        name=$(awk '/^Name:/ {print $2; exit}' "$pidpath/status" 2>/dev/null)
+    for status in /proc/[0-9]*/status; do
+        [ -r "$status" ] || continue
+
+        pid=${status#/proc/}
+        pid=${pid%/status}
+
+        IFS=$'\t' read -r name ppid < <(
+            LC_ALL=C awk '
+                /^Name:/ {
+                    sub(/^Name:[[:space:]]*/, "", $0)
+                    gsub(/\t/, " ", $0)
+                    name = $0
+                }
+
+                /^PPid:/ {
+                    ppid = $2
+                }
+
+                END {
+                    if (name != "") {
+                        printf "%s\t%d\n", name, ppid + 0
+                    }
+                }
+            ' "$status" 2>/dev/null
+        )
+
         [ -n "$name" ] || continue
 
-        if [ -r "$pidpath/smaps_rollup" ]; then
-            awk -v name="$name" '
-                /^Rss:/ { rss = $2 }
-                /^Pss:/ { pss = $2 }
-                /^Private_Clean:/ { private += $2 }
-                /^Private_Dirty:/ { private += $2 }
-                /^Swap:/ { swap = $2 }
-                END {
-                    if (rss + pss + private + swap > 0) {
-                        printf "%s\t%d\t%d\t%d\t%d\n", name, rss, pss, private, swap
-                    }
-                }
-            ' "$pidpath/smaps_rollup" 2>/dev/null >> "$tmpfile"
+        ppid=${ppid:-0}
+        pss=0
+        swappss=0
 
-        elif [ -r "$pidpath/smaps" ]; then
-            awk -v name="$name" '
-                /^Rss:/ { rss += $2 }
-                /^Pss:/ { pss += $2 }
-                /^Private_Clean:/ { private += $2 }
-                /^Private_Dirty:/ { private += $2 }
-                /^Swap:/ { swap += $2 }
-                END {
-                    if (rss + pss + private + swap > 0) {
-                        printf "%s\t%d\t%d\t%d\t%d\n", name, rss, pss, private, swap
+        if [ -r "/proc/$pid/smaps_rollup" ]; then
+            read -r pss swappss < <(
+                LC_ALL=C awk '
+                    /^Pss:/ {
+                        pss = $2
                     }
-                }
-            ' "$pidpath/smaps" 2>/dev/null >> "$tmpfile"
+
+                    /^SwapPss:/ {
+                        swappss = $2
+                    }
+
+                    END {
+                        printf "%.0f %.0f\n", pss + 0, swappss + 0
+                    }
+                ' "/proc/$pid/smaps_rollup" 2>/dev/null
+            )
+
+        elif [ -r "/proc/$pid/smaps" ]; then
+            read -r pss swappss < <(
+                LC_ALL=C awk '
+                    /^Pss:/ {
+                        pss += $2
+                    }
+
+                    /^SwapPss:/ {
+                        swappss += $2
+                    }
+
+                    END {
+                        printf "%.0f %.0f\n", pss + 0, swappss + 0
+                    }
+                ' "/proc/$pid/smaps" 2>/dev/null
+            )
+        else
+            continue
+        fi
+
+        pss=${pss:-0}
+        swappss=${swappss:-0}
+
+        if (( pss + swappss > 0 )); then
+            printf '%s\t%s\t%s\t%s\t%s\n' \
+                "$pid" \
+                "$ppid" \
+                "$name" \
+                "$pss" \
+                "$swappss" >> "$tmpfile"
         fi
     done
 
-    awk '
-        {
-            name = $1
-            rss[name] += $2
-            pss[name] += $3
-            private[name] += $4
-            swap[name] += $5
-            count[name]++
+    if [ "$mode" = "ram" ]; then
+        printf "%-30s %12s %12s %12s %10s\n" \
+            "NOMBRE" \
+            "RAM (MB)" \
+            "SWAP (MB)" \
+            "PADRE_PID" \
+            "PROCESOS"
+    else
+        printf "%-30s %12s %12s %12s %10s\n" \
+            "NOMBRE" \
+            "SWAP (MB)" \
+            "RAM (MB)" \
+            "PADRE_PID" \
+            "PROCESOS"
+    fi
+
+    printf "%-30s %12s %12s %12s %10s\n" \
+        "------------------------------" \
+        "------------" \
+        "------------" \
+        "------------" \
+        "----------"
+
+    LC_ALL=C awk \
+        -F '\t' \
+        -v mode="$mode" '
+        NF >= 5 {
+            pid = $1 + 0
+
+            ppid[pid] = $2 + 0
+            pname[pid] = $3
+            ram[pid] = $4 + 0
+            swap[pid] = $5 + 0
+            present[pid] = 1
         }
+
         END {
-            printf "%-25s %12s %12s %12s %12s %12s %8s\n", "NOMBRE", "RSS", "PSS", "PRIVATE", "SWAP", "TOTAL", "PROCESOS"
-            printf "%-25s %12s %12s %12s %12s %12s %8s\n", "-------------------------", "------------", "------------", "------------", "------------", "------------", "--------"
+            for (pid in present) {
+                target_name = pname[pid]
+                root = pid
+                parent = ppid[root]
 
-            i = 0
+                while ((parent in present) && (pname[parent] == target_name)) {
+                    root = parent
+                    parent = ppid[root]
+                }
 
-            for (name in pss) {
-                total = pss[name] + swap[name]
-                sort_array[i++] = sprintf("%020d\t%-25s %12.1f MB %12.1f MB %12.1f MB %12.1f MB %12.1f MB %8d", total, name, rss[name] / 1024, pss[name] / 1024, private[name] / 1024, swap[name] / 1024, total / 1024, count[name])
+                process_root[pid] = root
+                root_members[target_name SUBSEP root]++
             }
 
-            n = asort(sort_array)
+            for (pid in present) {
+                target_name = pname[pid]
+                root = process_root[pid]
+                root_key = target_name SUBSEP root
 
-            shown = 0
-
-            for (i = n; i >= 1; i--) {
-                sub(/^[0-9]+\t/, "", sort_array[i])
-                print sort_array[i]
-
-                shown++
-
-                if (shown >= 30) {
-                    break
+                if (root_members[root_key] > 1) {
+                    group_pid = root
+                } else if (ppid[pid] <= 1) {
+                    group_pid = pid
+                } else {
+                    group_pid = ppid[pid]
                 }
+
+                key = target_name SUBSEP group_pid
+
+                group_name[key] = target_name
+                group_pid_value[key] = group_pid
+                group_ram[key] += ram[pid]
+                group_swap[key] += swap[pid]
+                group_count[key]++
+            }
+
+            for (key in group_name) {
+                if (mode == "ram") {
+                    primary = group_ram[key]
+                    secondary = group_swap[key]
+                } else {
+                    primary = group_swap[key]
+                    secondary = group_ram[key]
+                }
+
+                if (primary <= 0) {
+                    continue
+                }
+
+                printf "%.0f\t%-30.30s %12.1f %12.1f %12d %10d\n",
+                    primary,
+                    group_name[key],
+                    primary / 1024,
+                    secondary / 1024,
+                    group_pid_value[key],
+                    group_count[key]
             }
         }
-    ' "$tmpfile"
+    ' "$tmpfile" |
+        sort -t $'\t' -k1,1nr |
+        head -n "$limit" |
+        cut -f2-
 
     rm -f "$tmpfile"
 }
 
-ramlist-fast() {
-    awk '
-        # Para cada archivo /proc/[pid]/status
-        # Capturamos el nombre del proceso y reiniciamos los valores de memoria temporal
-        FNR==1 && /Name:/ {
-            current_name = $2;
-            current_rss = 0;
-            current_swap = 0;
-        }
-        # Buscamos y guardamos el valor de VmRSS (RAM)
-        /VmRSS:/ { current_rss = $2; }
-        # Buscamos y guardamos el valor de VmSwap (Swap)
-        /VmSwap:/ { current_swap = $2; }
-        # Al final de cada archivo (ENDFILE se soporta en gawk), agregamos los valores
-        ENDFILE {
-            # Si el proceso no usa memoria, lo ignoramos
-            if (current_rss + current_swap > 0) {
-                rss[current_name] += current_rss;
-                swap[current_name] += current_swap;
-                count[current_name]++;
-            }
-        }
-        END {
-            # Imprimimos la cabecera
-            printf "%-25s %12s %12s %12s %8s\n", "NOMBRE", "RAM (RSS)", "SWAP", "TOTAL", "PROCESOS";
-            printf "%-25s %12s %12s %12s %8s\n", "-------------------------", "------------", "------------", "------------", "--------";
-
-            # Creamos un array para poder ordenar por el total de memoria usada
-            i = 0;
-            for (name in rss) {
-                total_mem = rss[name] + swap[name];
-                # Guardamos la línea de salida precedida por la memoria total para usarla como clave de ordenación
-                sort_array[i++] = sprintf("%020d\t%-25s\t%10.1f MB\t%10.1f MB\t%10.1f MB\t%8d", 
-                                        total_mem, name, rss[name]/1024, swap[name]/1024, total_mem/1024, count[name]);
-            }
-            # Ordenamos el array numéricamente en orden descendente
-            n = asort(sort_array);
-            for (i = n; i >= 1; i--) {
-                # Extraemos la parte imprimible del string (ignoramos la clave de ordenación)
-                sub(/^[0-9]+\t/, "", sort_array[i]);
-                print sort_array[i];
-                if (n-i+1 >= 30) break; # Limitar a los 30 primeros
-            }
-        }
-    ' /proc/[0-9]*/status
-}
-
 
 swaplist() {
-    awk '
-        # Para cada archivo /proc/[pid]/status
-        # Capturamos el nombre del proceso y reiniciamos los valores de memoria temporal
-        FNR==1 && /Name:/ {
-            current_name = $2;
-            current_rss = 0;
-            current_swap = 0;
-        }
-        # Buscamos y guardamos el valor de VmRSS (RAM)
-        /VmRSS:/ { current_rss = $2; }
-        # Buscamos y guardamos el valor de VmSwap (Swap)
-        /VmSwap:/ { current_swap = $2; }
-        # Al final de cada archivo (ENDFILE se soporta en gawk), agregamos los valores
-        ENDFILE {
-            # Si el proceso no usa memoria, lo ignoramos
-            if (current_rss + current_swap > 0) {
-                rss[current_name] += current_rss;
-                swap[current_name] += current_swap;
-                count[current_name]++;
-            }
-        }
-        END {
-            # Imprimimos la cabecera
-            printf "%-25s %12s %12s %12s %8s\n", "NOMBRE", "SWAP", "RAM (RSS)", "TOTAL", "PROCESOS";
-            printf "%-25s %12s %12s %12s %8s\n", "-------------------------", "------------", "------------", "------------", "--------";
-
-            # Creamos un array para poder ordenar por el total de memoria usada
-            i = 0;
-            for (name in swap) {
-                # Ignoramos los procesos que no usan swap para esta lista
-                if (swap[name] > 0) {
-                    swap_mem = swap[name];
-                    total_mem = rss[name] + swap_mem;
-                    sort_array[i++] = sprintf("%020d\t%-25s\t%10.1f MB\t%10.1f MB\t%10.1f MB\t%8d", 
-                                            swap_mem, name, swap_mem/1024, rss[name]/1024, total_mem/1024, count[name]);
-                }
-            }
-            # Ordenamos el array numéricamente en orden descendente
-            n = asort(sort_array);
-            for (i = n; i >= 1; i--) {
-                # Extraemos la parte imprimible del string (ignoramos la clave de ordenación)
-                sub(/^[0-9]+\t/, "", sort_array[i]);
-                print sort_array[i];
-                if (n-i+1 >= 30) break; # Limitar a los 30 primeros
-            }
-        }
-    ' /proc/[0-9]*/status
+    ramlist --swap
 }
+
+ramcheck() {
+    local root_pid="${1:-}"
+    local tmpfile
+    local pid
+    local child
+    local ppid
+    local command
+    local comm
+    local rss
+    local pss
+    local swappss
+
+    local -a queue
+    local -a process_list
+    local -A seen
+    local -A level
+
+    if [ "$#" -ne 1 ] || ! [[ "$root_pid" =~ ^[0-9]+$ ]]; then
+        printf 'Uso: ramcheck <PID>\n' >&2
+        return 2
+    fi
+
+    if [ ! -d "/proc/$root_pid" ]; then
+        printf 'Error: no existe el PID %s\n' "$root_pid" >&2
+        return 1
+    fi
+
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/ramcheck.XXXXXX") || return 1
+
+    queue=("$root_pid")
+    level["$root_pid"]=0
+
+    #
+    # Crear el árbol completo:
+    # PID raíz, hijos, nietos y demás descendientes.
+    #
+    while ((${#queue[@]} > 0)); do
+        pid=${queue[0]}
+        queue=("${queue[@]:1}")
+
+        if [[ -n "${seen[$pid]+existe}" ]]; then
+            continue
+        fi
+
+        [ -d "/proc/$pid" ] || continue
+
+        seen["$pid"]=1
+        process_list+=("$pid")
+
+        while read -r child; do
+            [[ "$child" =~ ^[0-9]+$ ]] || continue
+
+            if [[ -z "${seen[$child]+existe}" ]]; then
+                level["$child"]=$(( ${level[$pid]:-0} + 1 ))
+                queue+=("$child")
+            fi
+        done < <(
+            pgrep -P "$pid" 2>/dev/null | sort -n
+        )
+    done
+
+    #
+    # Leer la memoria de cada PID una sola vez.
+    #
+    for pid in "${process_list[@]}"; do
+        [ -r "/proc/$pid/status" ] || continue
+
+        ppid=$(
+            LC_ALL=C awk '
+                /^PPid:/ {
+                    print $2
+                    exit
+                }
+            ' "/proc/$pid/status" 2>/dev/null
+        )
+
+        ppid=${ppid:-0}
+
+        if [ -r "/proc/$pid/comm" ]; then
+            comm=$(<"/proc/$pid/comm")
+        else
+            comm="desconocido"
+        fi
+
+        command=""
+
+        if [ -r "/proc/$pid/cmdline" ]; then
+            command=$(
+                tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null
+            )
+        fi
+
+        command=${command% }
+        command=${command//$'\t'/ }
+        command=${command//$'\n'/ }
+
+        if [ -z "$command" ]; then
+            command="[$comm]"
+        fi
+
+        rss=0
+        pss=0
+        swappss=0
+
+        if [ -r "/proc/$pid/smaps_rollup" ]; then
+            read -r rss pss swappss < <(
+                LC_ALL=C awk '
+                    /^Rss:/ {
+                        rss = $2
+                    }
+
+                    /^Pss:/ {
+                        pss = $2
+                    }
+
+                    /^SwapPss:/ {
+                        swappss = $2
+                    }
+
+                    END {
+                        printf "%.0f %.0f %.0f\n",
+                            rss + 0,
+                            pss + 0,
+                            swappss + 0
+                    }
+                ' "/proc/$pid/smaps_rollup" 2>/dev/null
+            )
+
+        elif [ -r "/proc/$pid/smaps" ]; then
+            read -r rss pss swappss < <(
+                LC_ALL=C awk '
+                    /^Rss:/ {
+                        rss += $2
+                    }
+
+                    /^Pss:/ {
+                        pss += $2
+                    }
+
+                    /^SwapPss:/ {
+                        swappss += $2
+                    }
+
+                    END {
+                        printf "%.0f %.0f %.0f\n",
+                            rss + 0,
+                            pss + 0,
+                            swappss + 0
+                    }
+                ' "/proc/$pid/smaps" 2>/dev/null
+            )
+        else
+            continue
+        fi
+
+        rss=${rss:-0}
+        pss=${pss:-0}
+        swappss=${swappss:-0}
+
+        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+            "$pid" \
+            "$ppid" \
+            "${level[$pid]:-0}" \
+            "$pss" \
+            "$swappss" \
+            "$rss" \
+            "$command" >> "$tmpfile"
+    done
+
+    printf '\nAnálisis de memoria del PID %s\n\n' "$root_pid"
+
+    LC_ALL=C awk -F '\t' '
+        BEGIN {
+            printf "%-9s %-9s %5s %12s %12s %15s  %s\n",
+                "PID",
+                "PPID",
+                "NIVEL",
+                "RAM (MB)",
+                "SWAP (MB)",
+                "RSS BRUTO (MB)",
+                "PROCESO"
+
+            printf "%-9s %-9s %5s %12s %12s %15s  %s\n",
+                "---------",
+                "---------",
+                "-----",
+                "------------",
+                "------------",
+                "---------------",
+                "----------------------------------------"
+        }
+
+        {
+            pid = $1 + 0
+            ppid = $2 + 0
+            depth = $3 + 0
+            pss = $4 + 0
+            swappss = $5 + 0
+            rss = $6 + 0
+
+            process = $7
+
+            indentation = ""
+
+            for (i = 0; i < depth; i++) {
+                indentation = indentation "  "
+            }
+
+            if (depth > 0) {
+                process = indentation "|- " process
+            }
+
+            printf "%-9d %-9d %5d %12.1f %12.1f %15.1f  %s\n",
+                pid,
+                ppid,
+                depth,
+                pss / 1024,
+                swappss / 1024,
+                rss / 1024,
+                process
+
+            process_count++
+            total_pss += pss
+            total_swappss += swappss
+            total_rss += rss
+        }
+
+        END {
+            printf "\n"
+            printf "%-31s %12d\n",
+                "Procesos incluidos:",
+                process_count
+
+            printf "%-31s %12.1f MB\n",
+                "RAM real (PSS):",
+                total_pss / 1024
+
+            printf "%-31s %12.1f MB\n",
+                "Swap real (SwapPss):",
+                total_swappss / 1024
+
+            printf "%-31s %12.1f MB\n",
+                "Huella real RAM + swap:",
+                (total_pss + total_swappss) / 1024
+
+            printf "%-31s %12.1f MB\n",
+                "RSS bruto sumado:",
+                total_rss / 1024
+        }
+    ' "$tmpfile"
+
+    printf '\n'
+    printf '%s\n' \
+        'RAM usa PSS y SWAP usa SwapPss.' \
+        'RSS BRUTO es informativo y puede contar varias veces la memoria compartida.'
+
+    rm -f "$tmpfile"
+}
+
 
 # MAIL FILTERING
 
