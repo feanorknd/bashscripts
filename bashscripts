@@ -62,10 +62,17 @@ alias vacia="truncate -s 0"
 alias cola="postqueue -p"
 alias cola-borrar-todo="postsuper -d ALL"
 alias cola-enviar-todo="postqueue -f"
+alias cola-forzar-envio-requeue="postsuper -r ALL"
 alias cola-check-mail-by-id="postcat -q "
 alias cola-remove-mail-by-id="postsuper -d "
 alias cola-eliminar-mails-devueltos="postsuper -d ALL deferred"
 alias cola-pfqueue="pfqueue"
+
+cola-remove-mail-by-remitent() {
+	while [[ $# -eq 1 ]]; do
+		mailq | egrep '^[A-Z0-9]' | grep "$1" | awk '{print $1}' | sed 's/^\([0-9A-Z]*\).*$/\1/' | xargs -n 1 postsuper -d
+	done
+}
 
 compare_dirs() {
   local SOURCE=""
