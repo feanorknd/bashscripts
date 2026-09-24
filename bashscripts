@@ -716,7 +716,7 @@ showline(){
 
         awk "NR >= ${line} && NR <= ${after}" ${file};
 }
-geolocate(){ curl "https://gino.es/geo/$1"; echo ""; whois -h whois.cymru.com " -v $1" }
+geolocate(){ curl "https://gino.es/geo/$1"; echo ""; whois -h whois.cymru.com " -v $1" ; }
 ispcron(){ /usr/local/ispconfig/server/server.sh 2>&1 | while read line; do echo `/bin/date` "$line" >> /var/log/ispconfig/cron.log; done; }
 dudir(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; ; }
 dudirg(){ find $1 -maxdepth 1 -mindepth 1 -type d -exec du -hs {} \; | grep -E "^[0-9\.\,]+G" | sort ; }
